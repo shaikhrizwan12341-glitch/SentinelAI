@@ -1,3 +1,4 @@
+from components.metric_card import metric_card
 import streamlit as st
 
 # ----------------------------
@@ -23,18 +24,16 @@ st.markdown("---")
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.metric("Total Scans", "0")
+    metric_card("Total Scans", "0", "🌐")
 
 with col2:
-    st.metric("Threats Found", "0")
+    metric_card("Threats Found", "0", "⚠️", "#dc2626")
 
 with col3:
-    st.metric("Safe Scans", "0")
+    metric_card("Safe Scans", "0", "✅", "#16a34a")
 
 with col4:
-    st.metric("Model Accuracy", "97.8%")
-
-st.markdown("---")
+    metric_card("Model Accuracy", "97.8%", "🤖", "#2563eb")
 
 # ----------------------------
 # Quick Actions
