@@ -1,3 +1,4 @@
+from components.charts import threat_distribution_chart
 from components.metric_card import metric_card
 import streamlit as st
 
@@ -50,6 +51,18 @@ with c2:
 
 with c3:
     st.button("📱 Scan SMS", use_container_width=True)
+
+st.markdown("---")
+
+# ----------------------------
+# Threat Distribution
+# ----------------------------
+st.subheader("📊 Threat Distribution")
+
+st.plotly_chart(
+    threat_distribution_chart(),
+    use_container_width=True
+)
 
 st.markdown("---")
 
