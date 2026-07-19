@@ -11,70 +11,106 @@ st.set_page_config(
 
 st.title("💬 SMS Scanner")
 
-st.write("Scan suspicious SMS messages using the SentinelAI phishing detection engine.")
+st.write("Scan SMS messages using the SentinelAI phishing detection engine.")
 
 st.markdown("---")
 
 sms = st.text_area(
-    "Paste SMS",
-    height=200,
+    "Paste SMS Message",
     placeholder="Paste the SMS content here..."
 )
 
-if st.button("💬 Scan SMS", use_container_width=True):
+if st.button("🔍 Scan SMS", use_container_width=True):
 
+    # Empty Input
     if sms.strip() == "":
-        st.warning("Please paste an SMS.")
-        st.stop()
+        st.warning("Please enter an SMS message.")
 
-    result = predict_sms(sms)
-
-    save_scan(
-        "SMS",
-        sms,
-        result["prediction"],
-        result["confidence"],
-        result["risk"]
-    )
-
-    st.markdown("---")
-
-    col1, col2, col3 = st.columns(3)
-
-    col1.metric("Prediction", result["prediction"])
-    col2.metric("Confidence", f"{result['confidence']}%")
-    col3.metric("Risk", result["risk"])
-
-    if result["prediction"] == "SAFE":
-        st.success("🟢 This SMS appears to be safe.")
     else:
-        st.error("🔴 Potential phishing SMS detected.")
 
-    st.subheader("📊 AI Confidence")
-    st.progress(result["confidence"] / 100)
+        # AI Prediction
+        result = predict_sms(sms)
 
-    with st.expander("📄 Scan Details", expanded=True):
+        # Save Scan to Database
+        save_scan(
+            "SMS",
+            sms,
+            result["prediction"],
+            result["confidence"],
+            result["risk"]
+        )
 
-        st.write(f"**Prediction:** {result['prediction']}")
-        st.write(f"**Confidence:** {result['confidence']}%")
-        st.write(f"**Risk Level:** {result['risk']}")
+        st.markdown("---")
 
-    with st.expander("🤖 AI Explanation", expanded=True):
+        # ----------------------------
+        # Result Summary
+        # ----------------------------
+        col1, col2, col3 = st.columns(3)
 
+        with col1:
+            st.metric(
+                "Prediction",
+                result["prediction"]
+            )
+
+        with col2:
+            st.metric(
+                "Confidence",
+                f"{result['confidence']}%"
+            )
+
+        with col3:
+            st.metric(
+                "Risk",
+                result["risk"]
+            )
+
+        # ----------------------------
+        # Alert Message
+        # ----------------------------
         if result["prediction"] == "SAFE":
-            st.success("""
-The SMS contains very few phishing indicators.
-
-• No suspicious keywords detected
-• Low phishing probability
-• Appears legitimate
-""")
+            st.success("🟢 This SMS appears to be safe.")
         else:
-            st.error("""
+            st.error("🔴 Potential phishing/spam SMS detected.")
+
+        # ----------------------------
+        # Confidence Bar
+        # ----------------------------
+        st.subheader("📊 AI Confidence")
+        st.progress(result["confidence"] / 100)
+
+        # ----------------------------
+        # Scan Details
+        # ----------------------------
+        with st.expander("📄 Scan Details", expanded=True):
+
+            st.write(f"**Prediction:** {result['prediction']}")
+            st.write(f"**Confidence:** {result['confidence']}%")
+            st.write(f"**Risk Level:** {result['risk']}")
+
+            st.write("**SMS Message:**")
+            st.code(sms)
+
+        # ----------------------------
+        # AI Explanation
+        # ----------------------------
+        with st.expander("🤖 AI Explanation", expanded=True):
+
+            if result["prediction"] == "SAFE":
+                st.success("""
+The AI model classified this SMS as legitimate.
+
+• No significant phishing indicators detected
+• Normal SMS language
+• Low phishing probability
+                """)
+
+            else:
+                st.error("""
 Potential phishing indicators detected.
 
-• Urgent language
-• Credential request
-• Suspicious keywords
+• Suspicious wording or spam patterns
 • High phishing probability
-""")
+• Avoid clicking unknown links
+• Never share OTPs, passwords, or banking details
+                """)

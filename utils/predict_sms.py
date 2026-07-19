@@ -1,45 +1,57 @@
-import re
+from pathlib import Path
+import joblib
 
-PHISHING_KEYWORDS = [
-    "otp",
-    "bank",
-    "account",
-    "verify",
-    "click",
-    "urgent",
-    "winner",
-    "gift",
-    "claim",
-    "free",
-    "password",
-    "login",
-    "limited offer",
-    "confirm",
-    "reward"
-]
+# -----------------------------
+# Project Paths
+# -----------------------------
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+MODEL_PATH = PROJECT_ROOT / "models" / "sms_model.pkl"
+VECTORIZER_PATH = PROJECT_ROOT / "models" / "sms_vectorizer.pkl"
 
 
-def predict_sms(sms_text):
+# -----------------------------
+# Load Model
+# -----------------------------
+def load_model():
+    if not MODEL_PATH.exists():
+        raise FileNotFoundError(f"Model not found: {MODEL_PATH}")
 
-    text = sms_text.lower()
+    if not VECTORIZER_PATH.exists():
+        raise FileNotFoundError(f"Vectorizer not found: {VECTORIZER_PATH}")
 
-    score = 0
+    model = joblib.load(MODEL_PATH)
+    vectorizer = joblib.load(VECTORIZER_PATH)
 
-    for word in PHISHING_KEYWORDS:
-        if re.search(rf"\b{re.escape(word)}\b", text):
-            score += 1
+    return model, vectorizer
 
-    confidence = min(60 + score * 8, 99)
 
-    if score >= 3:
+# -----------------------------
+# Predict SMS
+# -----------------------------
+def predict_sms(sms_text: str):
+
+    model, vectorizer = load_model()
+
+    sms_vector = vectorizer.transform([sms_text])
+
+    prediction = model.predict(sms_vector)[0]
+
+    probabilities = model.predict_proba(sms_vector)[0]
+
+    phishing_probability = probabilities[1]
+
+    if prediction == 1:
         return {
             "prediction": "PHISHING",
-            "confidence": confidence,
+            "confidence": round(phishing_probability * 100, 2),
             "risk": "High"
         }
 
+    safe_probability = probabilities[0]
+
     return {
         "prediction": "SAFE",
-        "confidence": 100 - confidence,
+        "confidence": round(safe_probability * 100, 2),
         "risk": "Low"
     }

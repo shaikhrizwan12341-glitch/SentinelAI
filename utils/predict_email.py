@@ -1,45 +1,42 @@
-import re
+from pathlib import Path
+import joblib
 
-PHISHING_KEYWORDS = [
-    "verify",
-    "login",
-    "bank",
-    "account",
-    "password",
-    "click",
-    "urgent",
-    "winner",
-    "free",
-    "gift",
-    "claim",
-    "otp",
-    "suspended",
-    "confirm",
-    "limited time"
-]
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+MODEL_PATH = PROJECT_ROOT / "models" / "email_model.pkl"
+VECTORIZER_PATH = PROJECT_ROOT / "models" / "email_vectorizer.pkl"
 
 
-def predict_email(email_text):
+def load_model():
+    model = joblib.load(MODEL_PATH)
+    vectorizer = joblib.load(VECTORIZER_PATH)
+    return model, vectorizer
 
-    text = email_text.lower()
 
-    score = 0
+def predict_email(email_text: str) -> dict:
 
-    for word in PHISHING_KEYWORDS:
-        if re.search(rf"\b{re.escape(word)}\b", text):
-            score += 1
+    model, vectorizer = load_model()
 
-    confidence = min(60 + score * 8, 99)
+    features = vectorizer.transform([email_text])
 
-    if score >= 3:
+    prediction = model.predict(features)[0]
+
+    probabilities = model.predict_proba(features)[0]
+
+    phishing_probability = probabilities[1]
+
+    if prediction == 1:
+
         return {
             "prediction": "PHISHING",
-            "confidence": confidence,
+            "confidence": round(phishing_probability * 100, 2),
             "risk": "High"
         }
 
+    safe_probability = probabilities[0]
+
     return {
         "prediction": "SAFE",
-        "confidence": 100 - confidence,
+        "confidence": round(safe_probability * 100, 2),
         "risk": "Low"
     }
