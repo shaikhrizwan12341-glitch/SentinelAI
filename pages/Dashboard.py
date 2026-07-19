@@ -1,6 +1,14 @@
 from components.charts import threat_distribution_chart
 from components.metric_card import metric_card
+from database.database import (
+    get_total_scans,
+    get_safe_scans,
+    get_phishing_scans,
+    get_recent_scans
+)
+
 import streamlit as st
+import pandas as pd
 
 # ----------------------------
 # Page Configuration
@@ -20,21 +28,45 @@ st.subheader("AI-Powered Multilingual Phishing Detection Platform")
 st.markdown("---")
 
 # ----------------------------
+# Live Dashboard Statistics
+# ----------------------------
+total = get_total_scans()
+safe = get_safe_scans()
+phishing = get_phishing_scans()
+accuracy = "97.8%"
+
+# ----------------------------
 # Dashboard Cards
+# ----------------------------
+# ----------------------------
+# Dashboard Cards (Debug)
 # ----------------------------
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    metric_card("Total Scans", "0", "🌐")
+    st.metric(
+        label="🌐 Total Scans",
+        value=total
+    )
 
 with col2:
-    metric_card("Threats Found", "0", "⚠️", "#dc2626")
+    st.metric(
+        label="⚠️ Threats Found",
+        value=phishing
+    )
 
 with col3:
-    metric_card("Safe Scans", "0", "✅", "#16a34a")
+    st.metric(
+        label="✅ Safe Scans",
+        value=safe
+    )
 
 with col4:
-    metric_card("Model Accuracy", "97.8%", "🤖", "#2563eb")
+    st.metric(
+        label="🤖 Model Accuracy",
+        value=f"{accuracy}%"
+    )
+st.markdown("---")
 
 # ----------------------------
 # Quick Actions
@@ -71,7 +103,27 @@ st.markdown("---")
 # ----------------------------
 st.subheader("📋 Recent Activity")
 
-st.info("No scans have been performed yet.")
+rows = get_recent_scans()
+
+if rows:
+    df = pd.DataFrame(
+        rows,
+        columns=[
+            "URL",
+            "Prediction",
+            "Confidence",
+            "Risk",
+            "Scanned At"
+        ]
+    )
+
+    st.dataframe(
+        df,
+        use_container_width=True,
+        hide_index=True
+    )
+else:
+    st.info("No scans have been performed yet.")
 
 st.markdown("---")
 

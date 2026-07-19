@@ -1,6 +1,7 @@
 import validators
 import streamlit as st
 from utils.predict import predict_url
+from database.database import save_scan
 
 st.set_page_config(
     page_title="URL Scanner",
@@ -33,6 +34,12 @@ if st.button("🔍 Scan URL", use_container_width=True):
     else:
 
         result = predict_url(url)
+        save_scan(
+    url,
+    result["prediction"],
+    result["confidence"],
+    result["risk"]
+)
 
         st.markdown("---")
 

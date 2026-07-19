@@ -1,3 +1,17 @@
+from database.database import create_database
+import streamlit as st
+
+# Create database and tables if they don't exist
+create_database()
+
+# -----------------------------
+# Page Configuration
+# -----------------------------
+st.set_page_config(
+    page_title="SentinelAI",
+    page_icon="🛡️",
+    layout="wide"
+)
 import streamlit as st
 
 # -----------------------------
