@@ -14,12 +14,15 @@ rows = get_scans()
 
 if not rows:
     st.info("No scans available.")
+
 else:
+
     df = pd.DataFrame(
         rows,
         columns=[
             "ID",
-            "URL",
+            "Scan Type",
+            "Content",
             "Prediction",
             "Confidence",
             "Risk",

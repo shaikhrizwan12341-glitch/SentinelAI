@@ -35,11 +35,13 @@ if st.button("🔍 Scan URL", use_container_width=True):
 
         result = predict_url(url)
         save_scan(
+    "URL",
     url,
     result["prediction"],
     result["confidence"],
     result["risk"]
 )
+
 
         st.markdown("---")
 

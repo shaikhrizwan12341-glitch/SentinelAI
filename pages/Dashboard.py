@@ -109,12 +109,14 @@ if rows:
     df = pd.DataFrame(
         rows,
         columns=[
-            "URL",
+            "Type",
+            "Content",
             "Prediction",
             "Confidence",
             "Risk",
             "Scanned At"
-        ]
+]
+        
     )
 
     st.dataframe(
