@@ -50,27 +50,27 @@ section[data-testid="stMain"] > div {
 }
 
 /* ---------- Animated shield watermark ---------- */
+/* Fixed to the viewport center of the main content area (sidebar ~21rem wide) */
 .shield-watermark {
   position: fixed;
-  top: 50%;
-  left: 50%;
+  top: 50vh;
+  left: calc(50% + 10.5rem);
   width: 520px;
   height: 560px;
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 0;
-  opacity: 0.5;
   animation: shieldFloat 9s ease-in-out infinite, shieldGlow 7s ease-in-out infinite;
 }
 .shield-watermark svg { width: 100%; height: 100%; }
 
 @keyframes shieldFloat {
-  0%, 100% { transform: translate(-50%, -50%) translateY(0) rotate(0deg); }
+  0%, 100% { transform: translate(-50%, -50%) translateY(0px) rotate(0deg); }
   50%      { transform: translate(-50%, -50%) translateY(-22px) rotate(1.5deg); }
 }
 @keyframes shieldGlow {
-  0%, 100% { opacity: 0.35; filter: drop-shadow(0 0 24px rgba(34,211,238,0.25)); }
-  50%      { opacity: 0.6;  filter: drop-shadow(0 0 48px rgba(34,211,238,0.55)); }
+  0%, 100% { opacity: 0.32; filter: drop-shadow(0 0 28px rgba(34,211,238,0.28)); }
+  50%      { opacity: 0.58; filter: drop-shadow(0 0 52px rgba(34,211,238,0.58)); }
 }
 
 /* ---------- Glassmorphism utility ---------- */
