@@ -2,6 +2,7 @@ import validators
 import streamlit as st
 from utils.predict import predict_url
 from database.database import save_scan
+from utils.explanation import explain_url
 
 st.set_page_config(
     page_title="URL Scanner",
@@ -70,21 +71,13 @@ if st.button("🔍 Scan URL", use_container_width=True):
             st.write(f"**Risk Level:** {result['risk']}")
 
         # AI Explanation
+        summary, reasons = explain_url(url, result)
+
         with st.expander("🤖 AI Explanation", expanded=True):
 
-            if result["prediction"] == "SAFE":
-                st.success("""
-The AI model found no significant phishing indicators.
+            st.write(summary)
 
-• HTTPS detected
-• No suspicious URL pattern
-• Low phishing probability
-                """)
-            else:
-                st.error("""
-Potential phishing indicators detected.
+            st.markdown("### Why the AI reached this decision")
 
-• Suspicious URL pattern
-• High phishing probability
-• Visit with caution
-                """)
+            for reason in reasons:
+                st.write(f"• {reason}")

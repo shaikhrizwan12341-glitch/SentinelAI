@@ -1,6 +1,7 @@
 import streamlit as st
 
 from utils.predict_email import predict_email
+from utils.explanation import explain_email
 from database.database import save_scan
 
 st.set_page_config(
@@ -54,27 +55,18 @@ if st.button("📧 Scan Email", use_container_width=True):
     st.progress(result["confidence"] / 100)
 
     with st.expander("📄 Scan Details", expanded=True):
-
+        
         st.write(f"**Prediction:** {result['prediction']}")
         st.write(f"**Confidence:** {result['confidence']}%")
         st.write(f"**Risk Level:** {result['risk']}")
 
+    summary, reasons = explain_email(email, result)
+
     with st.expander("🤖 AI Explanation", expanded=True):
 
-        if result["prediction"] == "SAFE":
-            st.success("""
-The email contains very few phishing indicators.
+        st.write(summary)
 
-• No suspicious keywords detected
-• Low phishing probability
-• Appears legitimate
-""")
-        else:
-            st.error("""
-Potential phishing indicators detected.
+        st.markdown("### Why the AI reached this decision")
 
-• Urgent language
-• Credential request
-• Suspicious keywords
-• High phishing probability
-""")
+        for reason in reasons:
+            st.write(f"• {reason}")

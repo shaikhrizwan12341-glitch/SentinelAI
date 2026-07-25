@@ -1,4 +1,8 @@
-from components.charts import threat_distribution_chart
+from components.charts import (
+    threat_distribution_chart,
+    scan_type_chart,
+    daily_scan_chart
+)
 from components.metric_card import metric_card
 from database.database import (
     get_total_scans,
@@ -89,14 +93,29 @@ st.markdown("---")
 # ----------------------------
 # Threat Distribution
 # ----------------------------
-st.subheader("📊 Threat Distribution")
+st.subheader("📊 Security Analytics")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.plotly_chart(
+        threat_distribution_chart(),
+        use_container_width=True
+    )
+
+with col2:
+    st.plotly_chart(
+        scan_type_chart(),
+        use_container_width=True
+    )
 
 st.plotly_chart(
-    threat_distribution_chart(),
+    daily_scan_chart(),
     use_container_width=True
 )
 
 st.markdown("---")
+
 
 # ----------------------------
 # Recent Activity
@@ -106,17 +125,17 @@ st.subheader("📋 Recent Activity")
 rows = get_recent_scans()
 
 if rows:
+
     df = pd.DataFrame(
         rows,
         columns=[
-            "Type",
+            "Scan Type",
             "Content",
             "Prediction",
             "Confidence",
             "Risk",
             "Scanned At"
-]
-        
+        ]
     )
 
     st.dataframe(
@@ -124,10 +143,10 @@ if rows:
         use_container_width=True,
         hide_index=True
     )
+
 else:
     st.info("No scans have been performed yet.")
-
-st.markdown("---")
+    st.markdown("---")
 
 # ----------------------------
 # System Status
