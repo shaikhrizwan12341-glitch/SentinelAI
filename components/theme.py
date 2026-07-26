@@ -27,21 +27,35 @@ _GLOBAL_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;600&display=swap');
 
-/* ---------- Base ---------- */
+/* ---------- Base Font Rules ---------- */
 html, body, p, span, div, input, textarea {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
+
 code, pre, .stCode {
   font-family: 'JetBrains Mono', monospace !important;
 }
 
+/* Fix Streamlit system icons being replaced by text */
+[data-testid="stSidebarCollapseButton"] *,
+[data-testid="stSidebarExpandButton"] *,
+button[aria-label*="sidebar"] *,
+.material-symbols-rounded,
+.material-icons,
+[class*="material-symbols"] {
+  font-family: 'Material Symbols Rounded', 'Material Icons', sans-serif !important;
+}
+
+/* App Background & Layout Structure */
 section[data-testid="stMain"] {
   background: transparent !important;
 }
+
 section[data-testid="stMain"] > div {
   position: relative;
   z-index: 1;
 }
+
 .stApp {
   background:
     radial-gradient(1200px 600px at 80% -10%, rgba(34,211,238,0.10), transparent 60%),
@@ -49,12 +63,11 @@ section[data-testid="stMain"] > div {
     linear-gradient(180deg, #0a0e1a 0%, #070b15 100%);
 }
 
-/* ---------- Animated shield watermark ---------- */
-/* Fixed to the viewport center of the main content area (sidebar ~21rem wide) */
+/* ---------- Animated Shield Watermark (Fixed Center) ---------- */
 .shield-watermark {
   position: fixed;
   top: 50vh;
-  left: calc(50% + 10.5rem);
+  left: 50vw;
   width: 520px;
   height: 560px;
   transform: translate(-50%, -50%);
@@ -62,18 +75,23 @@ section[data-testid="stMain"] > div {
   z-index: 0;
   animation: shieldFloat 9s ease-in-out infinite, shieldGlow 7s ease-in-out infinite;
 }
-.shield-watermark svg { width: 100%; height: 100%; }
+
+.shield-watermark svg { 
+  width: 100%; 
+  height: 100%; 
+}
 
 @keyframes shieldFloat {
   0%, 100% { transform: translate(-50%, -50%) translateY(0px) rotate(0deg); }
   50%      { transform: translate(-50%, -50%) translateY(-22px) rotate(1.5deg); }
 }
+
 @keyframes shieldGlow {
   0%, 100% { opacity: 0.32; filter: drop-shadow(0 0 28px rgba(34,211,238,0.28)); }
   50%      { opacity: 0.58; filter: drop-shadow(0 0 52px rgba(34,211,238,0.58)); }
 }
 
-/* ---------- Glassmorphism utility ---------- */
+/* ---------- Glassmorphism Utilities ---------- */
 .glass {
   background: rgba(255, 255, 255, 0.045);
   backdrop-filter: blur(14px) saturate(140%);
@@ -83,11 +101,13 @@ section[data-testid="stMain"] > div {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
   transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
 }
+
 .glass:hover {
   transform: translateY(-4px);
   border-color: rgba(34, 211, 238, 0.35);
   box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45), 0 0 24px rgba(34, 211, 238, 0.12);
 }
+
 .glass-flat {
   background: rgba(255, 255, 255, 0.035);
   backdrop-filter: blur(10px);
@@ -96,25 +116,27 @@ section[data-testid="stMain"] > div {
   border-radius: 14px;
 }
 
-/* ---------- Sidebar ---------- */
+/* ---------- Sidebar styling ---------- */
 section[data-testid="stSidebar"] {
   background: linear-gradient(180deg, rgba(17,24,39,0.82) 0%, rgba(10,14,26,0.96) 100%);
   backdrop-filter: blur(18px) saturate(150%);
   -webkit-backdrop-filter: blur(18px) saturate(150%);
   border-right: 1px solid rgba(34, 211, 238, 0.14);
 }
-section[data-testid="stSidebar"] * {
-  font-family: 'Inter', sans-serif !important;
-}
+
 .sb-logo {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 4px 6px 4px;
 }
+
 .sb-logo .badge {
-  width: 46px; height: 46px;
-  display: flex; align-items: center; justify-content: center;
+  width: 46px; 
+  height: 46px;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
   border-radius: 12px;
   background: linear-gradient(135deg, rgba(34,211,238,0.25), rgba(45,212,191,0.12));
   border: 1px solid rgba(34,211,238,0.4);
@@ -122,69 +144,134 @@ section[data-testid="stSidebar"] * {
   font-size: 22px;
   animation: badgePulse 4s ease-in-out infinite;
 }
+
 @keyframes badgePulse {
   0%, 100% { box-shadow: 0 0 18px rgba(34,211,238,0.25); }
   50%      { box-shadow: 0 0 30px rgba(34,211,238,0.55); }
 }
+
 .sb-title {
-  font-size: 20px; font-weight: 800; letter-spacing: 0.5px;
+  font-size: 20px; 
+  font-weight: 800; 
+  letter-spacing: 0.5px;
   background: linear-gradient(90deg, #22d3ee, #2dd4bf);
-  -webkit-background-clip: text; background-clip: text;
+  -webkit-background-clip: text; 
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
 .sb-version {
-  font-size: 11px; color: #64748b; letter-spacing: 1px; margin-top: 2px;
-}
-.sb-status-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 7px 12px; margin: 4px 0;
-  font-size: 13px; color: #cbd5e1;
-}
-.sb-status-row .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  display: inline-block; margin-right: 8px;
-  box-shadow: 0 0 8px currentColor;
-}
-.sb-section-label {
-  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
-  color: #475569; margin: 14px 4px 6px 4px; font-weight: 600;
+  font-size: 11px; 
+  color: #64748b; 
+  letter-spacing: 1px; 
+  margin-top: 2px;
 }
 
-/* ---------- Headings & text ---------- */
+.sb-status-row {
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between;
+  padding: 7px 12px; 
+  margin: 4px 0;
+  font-size: 13px; 
+  color: #cbd5e1;
+}
+
+.sb-status-row .dot {
+  width: 8px; 
+  height: 8px; 
+  border-radius: 50%;
+  display: inline-block; 
+  margin-right: 8px;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.sb-section-label {
+  font-size: 10px; 
+  letter-spacing: 2px; 
+  text-transform: uppercase;
+  color: #475569; 
+  margin: 14px 4px 6px 4px; 
+  font-weight: 600;
+}
+
+/* ---------- Typography & Equal Height Cards ---------- */
 h1, h2, h3 { letter-spacing: -0.02em; }
+
 .hero-title {
-  font-size: 52px; font-weight: 800; line-height: 1.05;
+  font-size: 52px; 
+  font-weight: 800; 
+  line-height: 1.05;
   background: linear-gradient(120deg, #f1f5f9 30%, #22d3ee 60%, #2dd4bf 100%);
-  -webkit-background-clip: text; background-clip: text;
+  -webkit-background-clip: text; 
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0;
 }
+
 .hero-sub {
-  font-size: 17px; color: #94a3b8; line-height: 1.6; max-width: 640px;
+  font-size: 17px; 
+  color: #94a3b8; 
+  line-height: 1.6; 
+  max-width: 640px;
 }
+
+/* Force Streamlit column containers to stretch equally */
+div[data-testid="column"] {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+div[data-testid="column"] > div {
+  height: 100% !important;
+}
+
+div[data-testid="column"] .stMarkdown {
+  height: 100% !important;
+}
+
+/* Feature card height normalization */
 .feature-card {
-  padding: 22px 22px 20px 22px;
+  padding: 22px;
+  min-height: 180px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  box-sizing: border-box;
 }
+
 .feature-card .ic {
-  width: 44px; height: 44px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; margin-bottom: 14px;
+  width: 44px; 
+  height: 44px; 
+  border-radius: 12px;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  font-size: 22px; 
+  margin-bottom: 14px;
   background: rgba(34,211,238,0.12);
   border: 1px solid rgba(34,211,238,0.25);
+  flex-shrink: 0;
 }
+
 .feature-card h4 { margin: 0 0 6px 0; font-size: 16px; color: #e2e8f0; }
 .feature-card p  { margin: 0; font-size: 13px; color: #94a3b8; line-height: 1.55; }
 
 .stat-chip {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 8px 14px; border-radius: 999px;
+  display: inline-flex; 
+  align-items: center; 
+  gap: 8px;
+  padding: 8px 14px; 
+  border-radius: 999px;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
-  font-size: 13px; color: #cbd5e1;
+  font-size: 13px; 
+  color: #cbd5e1;
 }
 
-/* ---------- Buttons ---------- */
-.stButton > button {
+/* ---------- Streamlit Buttons Override ---------- */
+div[data-testid="stButton"] > button {
   border-radius: 10px !important;
   border: 1px solid rgba(34,211,238,0.3) !important;
   background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(45,212,191,0.10)) !important;
@@ -192,33 +279,30 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   font-weight: 600 !important;
   transition: all 0.25s ease !important;
 }
-.stButton > button:hover {
+
+div[data-testid="stButton"] > button:hover {
   border-color: rgba(34,211,238,0.7) !important;
   box-shadow: 0 0 18px rgba(34,211,238,0.3) !important;
   transform: translateY(-1px);
 }
 
-/* ---------- Scrollbar ---------- */
+/* ---------- Custom Scrollbars ---------- */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: #0a0e1a; }
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #1e293b, #0f172a);
-  border-radius: 8px; border: 2px solid #0a0e1a;
+  border-radius: 8px; 
+  border: 2px solid #0a0e1a;
 }
 ::-webkit-scrollbar-thumb:hover { background: #22d3ee; }
 
-/* ---------- Links ---------- */
+/* ---------- Anchor Links ---------- */
 a { color: #22d3ee; text-decoration: none; transition: color 0.2s; }
 a:hover { color: #2dd4bf; }
 </style>
 """
 
-
 def apply_theme():
-    """Inject the global SentinelAI theme: dark glassmorphism + animated shield watermark.
-
-    Call once near the top of any page (after st.set_page_config) to apply the
-    shared look. Safe to call on every page.
-    """
+    """Inject the global SentinelAI theme: dark glassmorphism + centered animated shield watermark."""
     st.markdown(_GLOBAL_CSS, unsafe_allow_html=True)
     st.markdown(_WATERMARK_HTML, unsafe_allow_html=True)

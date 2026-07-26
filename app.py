@@ -1,5 +1,5 @@
-from database.database import create_database
 import streamlit as st
+from database.database import create_database
 
 from components.theme import apply_theme
 from utils.constants import APP_NAME, APP_VERSION, SYSTEM_STATUS, MODEL_ACCURACY
@@ -38,7 +38,7 @@ with st.sidebar:
     st.markdown("---")
 
     st.markdown(
-        '<div class="sb-section-label">System Status</div>',
+        '<div style="color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px;">System Status</div>',
         unsafe_allow_html=True,
     )
     for label, value in SYSTEM_STATUS.items():
@@ -57,16 +57,16 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown(
-        '<div class="sb-section-label">Navigation</div>',
+        '<div style="color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px;">Navigation</div>',
         unsafe_allow_html=True,
     )
     st.info("Use the pages menu above to move between modules.")
 
     st.markdown("---")
-    st.caption("© 2025 SentinelAI · All rights reserved.")
+    st.caption("© 2026 SentinelAI · All rights reserved.")
 
 # -----------------------------
-# Main Page
+# Main Page Header
 # -----------------------------
 st.markdown(
     f"""
@@ -94,8 +94,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# -----------------------------
+# Core Modules
+# -----------------------------
 st.markdown(
-    '<div class="sb-section-label" style="margin-top:8px;">Core Modules</div>',
+    '<div style="font-size:18px; font-weight:700; color:#e2e8f0; margin-top:12px; margin-bottom:16px;">Core Modules</div>',
     unsafe_allow_html=True,
 )
 
@@ -113,15 +116,18 @@ for i, (icon, title, desc) in enumerate(features):
     with cols[i % 3]:
         st.markdown(
             f"""
-            <div class="glass feature-card">
-                <div class="ic">{icon}</div>
-                <h4>{title}</h4>
-                <p>{desc}</p>
+            <div class="glass feature-card" style="padding:20px; border-radius:12px; margin-bottom:16px; min-height:160px;">
+                <div class="ic" style="font-size:28px; margin-bottom:8px;">{icon}</div>
+                <h4 style="margin:0 0 8px 0; font-size:16px; color:#e2e8f0;">{title}</h4>
+                <p style="margin:0; font-size:13px; color:#94a3b8; line-height:1.5;">{desc}</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
+# -----------------------------
+# Footer
+# -----------------------------
 st.markdown("---")
 st.markdown(
     '<p style="color:#64748b;font-size:13px;text-align:center;">'
