@@ -3,62 +3,67 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-from utils.url_features import extract_url_features
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+)
 
-
-# Project root directory
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-DATASET_PATH = PROJECT_ROOT / "data" / "url_dataset.csv"
+DATASET_PATH = PROJECT_ROOT / "data" / "training_features.csv"
 MODEL_PATH = PROJECT_ROOT / "models" / "url_model.pkl"
 
+print("Loading extracted feature dataset...")
 
-def train_model():
-    """
-    Train and save the phishing URL detection model.
-    """
+df = pd.read_csv(DATASET_PATH)
 
-    print("Loading dataset...")
+X = df.drop(columns=["label"])
+print(list(X.columns))
 
-    data = pd.read_csv(DATASET_PATH)
+y = df["label"]
 
-    print(f"Dataset size: {len(data)}")
+print(f"Training Samples : {len(df)}")
+print(f"Feature Count    : {X.shape[1]}")
 
-    print("Extracting URL features...")
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.20,
+    random_state=42,
+    stratify=y,
+)
 
-    X = data["url"].apply(extract_url_features).tolist()
-    y = data["label"]
+print("\nTraining Random Forest...\n")
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42,
-        stratify=y
-    )
+model = RandomForestClassifier(
+    n_estimators=300,
+    max_depth=20,
+    min_samples_split=5,
+    class_weight="balanced",
+    random_state=42,
+    n_jobs=-1,
+)
 
-    print("Training Random Forest model...")
+model.fit(X_train, y_train)
 
-    model = RandomForestClassifier(
-        n_estimators=100,
-        random_state=42
-    )
+predictions = model.predict(X_test)
 
-    model.fit(X_train, y_train)
+accuracy = accuracy_score(y_test, predictions)
 
-    predictions = model.predict(X_test)
+print("=" * 60)
+print(f"Accuracy : {accuracy*100:.2f}%")
+print("=" * 60)
 
-    accuracy = accuracy_score(y_test, predictions)
+print("\nClassification Report\n")
+print(classification_report(y_test, predictions))
 
-    print(f"Model Accuracy: {accuracy * 100:.2f}%")
+print("\nConfusion Matrix\n")
+print(confusion_matrix(y_test, predictions))
 
-    joblib.dump(model, MODEL_PATH)
+joblib.dump(model, MODEL_PATH)
 
-    print(f"Model saved to: {MODEL_PATH}")
-
-
-if __name__ == "__main__":
-    train_model()
+print("\nModel saved successfully!")
+print(MODEL_PATH)
