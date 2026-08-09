@@ -212,11 +212,17 @@ with actions_col:
         """,
         unsafe_allow_html=True
     )
-    st.button("🌐  Scan URL", use_container_width=True)
+    if st.button("🌐  Scan URL", use_container_width=True):
+        st.switch_page("pages/URL_Scanner.py")
+
     st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
-    st.button("📧  Scan Email", use_container_width=True)
+    if st.button("📧  Scan Email", use_container_width=True):
+        st.switch_page("pages/Email_Scanner.py")
+
     st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
-    st.button("💬  Scan SMS", use_container_width=True)
+    if st.button("💬  Scan SMS", use_container_width=True):
+        st.switch_page("pages/SMS_Scanner.py")
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
