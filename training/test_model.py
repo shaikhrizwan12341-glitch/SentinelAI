@@ -1,15 +1,25 @@
 from utils.predict_v2 import predict_url
 
-urls = [
+test_urls = [
     "https://google.com",
     "https://github.com",
-    "http://paypal-login-security-update.com"
+    "https://www.microsoft.com",
+    "http://paypal-login-security-update.com",
 ]
 
-for url in urls:
+print("=" * 60)
+print("SentinelAI URL Model Test")
+print("=" * 60)
 
-    print("=" * 60)
+for url in test_urls:
+    print("\nURL:", url)
 
-    print(url)
+    result = predict_url(url)
 
-    print(predict_url(url))
+    print("Prediction :", result["prediction"])
+    print("Confidence :", result["confidence"])
+    print("Phishing   :", result["phishing_probability"])
+    print("Safe       :", result["safe_probability"])
+
+    if "flag" in result:
+        print("Flag       :", result["flag"])

@@ -1,163 +1,249 @@
-from urllib.parse import urlparse
-import requests
-from bs4 import BeautifulSoup
-import tldextract
 import ipaddress
+import math
+import re
+from collections import Counter
+from urllib.parse import urlparse
+
+import tldextract
 
 
-# -----------------------------
-# Helper Functions
-# -----------------------------
+# Brands frequently impersonated in phishing URLs
+TARGET_BRANDS = [
+    "paypal",
+    "google",
+    "apple",
+    "microsoft",
+    "amazon",
+    "netflix",
+    "facebook",
+    "instagram",
+    "chase",
+    "wellsfargo",
+    "bankofamerica",
+    "binance",
+    "coinbase",
+    "steam",
+    "linkedin",
+    "twitter",
+    "outlook",
+]
 
-def is_ip(domain):
+
+def has_ip_address(hostname: str) -> int:
+    """Check whether the hostname is an IPv4 or IPv6 address."""
+
     try:
-        ipaddress.ip_address(domain)
+        ipaddress.ip_address(hostname)
         return 1
-    except:
+    except ValueError:
         return 0
 
 
-def safe_request(url):
+def calculate_entropy(text: str) -> float:
+    """Calculate Shannon entropy of a string."""
 
-    try:
-        headers = {
-            "User-Agent":
-            "Mozilla/5.0"
-        }
+    if not text:
+        return 0.0
 
-        response = requests.get(
-            url,
-            timeout=10,
-            headers=headers
-        )
+    counts = Counter(text)
+    length = len(text)
 
-        return response
+    entropy = 0.0
 
-    except:
+    for count in counts.values():
+        probability = count / length
+        entropy -= probability * math.log2(probability)
 
-        return None
+    return round(entropy, 4)
 
 
-# -----------------------------
-# Feature Extraction
-# -----------------------------
+def extract_features(url: str) -> dict:
+    """
+    Extract the exact 30 URL features used by the SentinelAI model.
 
-def extract_features(url):
+    IMPORTANT:
+    The feature names must match models/feature_order.json exactly.
+    """
 
-    parsed = urlparse(url)
+    raw_url = str(url).strip()
 
-    ext = tldextract.extract(url)
-
-    domain = parsed.netloc
-
-    response = safe_request(url)
-
-    soup = None
-
-    if response:
-
-        soup = BeautifulSoup(
-            response.text,
-            "html.parser"
-        )
-
-    features = {}
-
-    # --------------------------
-    # URL Features
-    # --------------------------
-
-    features["URLLength"] = len(url)
-
-    features["DomainLength"] = len(domain)
-
-    features["IsDomainIP"] = is_ip(domain)
-
-    features["NoOfSubDomain"] = (
-        len(ext.subdomain.split("."))
-        if ext.subdomain
-        else 0
+    # Remove accidental Markdown link formatting if supplied
+    markdown_match = re.match(
+        r"^\[.*?\]\((https?://.*?)\)$",
+        raw_url
     )
 
-    features["IsHTTPS"] = (
-        1
-        if parsed.scheme == "https"
-        else 0
-    )
+    if markdown_match:
+        raw_url = markdown_match.group(1)
 
-    # --------------------------
-    # HTML Features
-    # --------------------------
+    # Handle escaped protocol
+    raw_url = raw_url.replace("https\\://", "https://")
+    raw_url = raw_url.replace("http\\://", "http://")
 
-    if soup:
-
-        title = soup.title.string if soup.title else ""
-
-        features["HasTitle"] = int(bool(title))
-
-        features["HasFavicon"] = int(
-            soup.find("link", rel=lambda x: x and "icon" in x.lower()) is not None
-        )
-
-        features["HasDescription"] = int(
-            soup.find("meta", attrs={"name": "description"}) is not None
-        )
-
-        features["HasPasswordField"] = len(
-            soup.find_all("input", {"type": "password"})
-        )
-
-        features["HasSubmitButton"] = len(
-            soup.find_all(
-                "input",
-                {"type": "submit"}
-            )
-        ) + len(
-            soup.find_all("button")
-        )
-
-        features["HasHiddenFields"] = len(
-            soup.find_all(
-                "input",
-                {"type": "hidden"}
-            )
-        )
-
-        features["NoOfImage"] = len(
-            soup.find_all("img")
-        )
-
-        features["NoOfCSS"] = len(
-            soup.find_all("link")
-        )
-
-        features["NoOfJS"] = len(
-            soup.find_all("script")
-        )
-
-        features["NoOfiFrame"] = len(
-            soup.find_all("iframe")
-        )
-
-        features["NoOfPopup"] = response.text.lower().count("window.open")
-
-        features["LineOfCode"] = len(
-            response.text.splitlines()
-        )
-
+    # Add protocol when missing
+    if not raw_url.startswith(("http://", "https://")):
+        parsed_target = "http://" + raw_url
     else:
+        parsed_target = raw_url
 
-        features["HasTitle"] = 0
-        features["HasFavicon"] = 0
-        features["HasDescription"] = 0
-        features["HasPasswordField"] = 0
-        features["HasSubmitButton"] = 0
-        features["HasHiddenFields"] = 0
-        features["NoOfImage"] = 0
-        features["NoOfCSS"] = 0
-        features["NoOfJS"] = 0
-        features["NoOfiFrame"] = 0
-        features["NoOfPopup"] = 0
-        features["LineOfCode"] = 0
+    parsed_url = urlparse(parsed_target)
+
+    hostname = parsed_url.hostname or ""
+
+    # tldextract
+    extracted = tldextract.extract(parsed_target)
+
+    domain = extracted.domain.lower() if extracted.domain else ""
+    subdomain = extracted.subdomain.lower() if extracted.subdomain else ""
+
+    registered_domain = ""
+
+    if extracted.domain and extracted.suffix:
+        registered_domain = (
+            f"{extracted.domain}.{extracted.suffix}"
+        ).lower()
+
+    path = parsed_url.path or ""
+    query = parsed_url.query or ""
+    fragment = parsed_url.fragment or ""
+
+    # --------------------------------------------------
+    # Suspicious keyword detection
+    # --------------------------------------------------
+
+    suspicious_pattern = (
+        r"login|verify|account|update|secure|bank|"
+        r"signin|confirm|password"
+    )
+
+    has_suspicious_keywords = int(
+        bool(
+            re.search(
+                suspicious_pattern,
+                raw_url.lower()
+            )
+        )
+    )
+
+    # --------------------------------------------------
+    # Brand impersonation detection
+    # --------------------------------------------------
+
+    brand_in_domain = any(
+        brand in domain
+        for brand in TARGET_BRANDS
+    )
+
+    official_domains = {
+        "paypal.com",
+        "google.com",
+        "apple.com",
+        "microsoft.com",
+        "amazon.com",
+        "netflix.com",
+        "facebook.com",
+        "instagram.com",
+        "chase.com",
+        "wellsfargo.com",
+        "bankofamerica.com",
+        "binance.com",
+        "coinbase.com",
+        "steam.com",
+        "linkedin.com",
+        "twitter.com",
+        "outlook.com",
+    }
+
+    is_official_domain = (
+        registered_domain in official_domains
+    )
+
+    brand_impersonation = int(
+        brand_in_domain and not is_official_domain
+    )
+
+    # --------------------------------------------------
+    # Feature extraction
+    # --------------------------------------------------
+
+    features = {
+
+        "url_length": len(raw_url),
+
+        "dot_count": raw_url.count("."),
+
+        "hyphen_count": raw_url.count("-"),
+
+        "underscore_count": raw_url.count("_"),
+
+        "slash_count": raw_url.count("/"),
+
+        "question_count": raw_url.count("?"),
+
+        "equal_count": raw_url.count("="),
+
+        "at_count": raw_url.count("@"),
+
+        "ampersand_count": raw_url.count("&"),
+
+        "digit_count": sum(
+            c.isdigit() for c in raw_url
+        ),
+
+        "alpha_count": sum(
+            c.isalpha() for c in raw_url
+        ),
+
+        "is_https": int(
+            raw_url.lower().startswith("https://")
+        ),
+
+        "has_ip": has_ip_address(hostname),
+
+        "subdomain_count": (
+            len(subdomain.split("."))
+            if subdomain
+            else 0
+        ),
+
+        "has_suspicious_keywords": has_suspicious_keywords,
+
+        "hostname_length": len(hostname),
+
+        "path_length": len(path),
+
+        "query_length": len(query),
+
+        "fragment_length": len(fragment),
+
+        "parameter_count": (
+            len(query.split("&"))
+            if query
+            else 0
+        ),
+
+        "colon_count": raw_url.count(":"),
+
+        "semicolon_count": raw_url.count(";"),
+
+        "comma_count": raw_url.count(","),
+
+        "dollar_count": raw_url.count("$"),
+
+        "percent_count": raw_url.count("%"),
+
+        "tilde_count": raw_url.count("~"),
+
+        "plus_count": raw_url.count("+"),
+
+        "special_char_count": sum(
+            1 for c in raw_url
+            if not c.isalnum()
+        ),
+
+        "entropy": calculate_entropy(raw_url),
+
+        "brand_impersonation": brand_impersonation,
+    }
 
     return features
