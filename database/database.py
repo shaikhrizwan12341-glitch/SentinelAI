@@ -139,6 +139,122 @@ def get_recent_scans(limit=5):
         ORDER BY id DESC
         LIMIT ?
     """, (limit,))
+    
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return rows
+# ---------------------------------------
+# Threat Distribution
+# ---------------------------------------
+
+def get_threat_distribution():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT prediction, COUNT(*)
+        FROM scan_history
+        GROUP BY prediction
+    """)
+
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return rows
+
+
+# ---------------------------------------
+# Scan Type Distribution
+# ---------------------------------------
+
+def get_scan_type_distribution():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT scan_type, COUNT(*)
+        FROM scan_history
+        GROUP BY scan_type
+    """)
+
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return rows
+
+
+# ---------------------------------------
+# Daily Scan Trend
+# ---------------------------------------
+
+def get_daily_scans():
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            DATE(scanned_at),
+            COUNT(*)
+        FROM scan_history
+        GROUP BY DATE(scanned_at)
+        ORDER BY DATE(scanned_at)
+    """)
+
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return rows
+    # ---------------------------------------
+# Clear Scan History
+# ---------------------------------------
+
+def clear_scan_history():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM scan_history")
+
+    conn.commit()
+    conn.close()
+# ---------------------------------------
+# Search & Filter Scan History
+# ---------------------------------------
+
+def filter_scans(search="", scan_type="All", prediction="All"):
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    query = """
+        SELECT *
+        FROM scan_history
+        WHERE 1=1
+    """
+
+    params = []
+
+    if search:
+        query += " AND content LIKE ?"
+        params.append(f"%{search}%")
+
+    if scan_type != "All":
+        query += " AND scan_type=?"
+        params.append(scan_type)
+
+    if prediction != "All":
+        query += " AND prediction=?"
+        params.append(prediction)
+
+    query += " ORDER BY id DESC"
+
+    cursor.execute(query, params)
+
     rows = cursor.fetchall()
 
     conn.close()
