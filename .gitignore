@@ -235,3 +235,9 @@ data/url_dataset.csv
 # OS Files
 .DS_Store
 Thumbs.db
+@"
+.env
+.venv/
+__pycache__/
+*.pyc
+"@ | Set-Content ".gitignore"
