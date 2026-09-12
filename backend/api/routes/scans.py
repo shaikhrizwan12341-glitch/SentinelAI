@@ -1,14 +1,15 @@
 import logging
-
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from backend.api.dependencies import get_current_user
 from backend.schemas.scan import (
     ScanHistoryItem,
     ScanHistoryResponse,
 )
+from database.models.user import User
 from database.repositories.scan_repository import ScanRepository
 from database.services.scan_service import ScanService
 from database.session import get_db
@@ -47,6 +48,7 @@ def get_scan_history(
         default=None,
         description="Filter by prediction: SAFE, PHISHING, or SUSPICIOUS",
     ),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ScanHistoryResponse:
 
@@ -59,6 +61,7 @@ def get_scan_history(
             offset=offset,
             scan_type=scan_type,
             prediction=prediction,
+            user_id=current_user.id,
         )
 
         items = [
@@ -95,6 +98,7 @@ def get_scan_history(
 )
 def get_scan_by_id(
     scan_id: UUID,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ScanHistoryItem:
 
@@ -102,7 +106,10 @@ def get_scan_by_id(
         repository = ScanRepository(db)
         service = ScanService(repository)
 
-        scan = service.get_scan(scan_id)
+        scan = service.get_scan(
+            scan_id=scan_id,
+            user_id=current_user.id,
+        )
 
         if scan is None:
             raise HTTPException(

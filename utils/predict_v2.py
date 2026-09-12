@@ -1,10 +1,14 @@
 from pathlib import Path
 
 import joblib
-import tldextract
+import numpy as np
 
-from utils.url_features_v2 import extract_features
 from utils.feature_mapper import map_features
+from utils.legitimate_domains import (
+    get_brand_impersonation_flag,
+    is_trusted_domain,
+)
+from utils.url_features import extract_url_features
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -12,216 +16,137 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = PROJECT_ROOT / "models" / "url_model.pkl"
 
 
-# ============================================================
-# Known legitimate domains
-# ============================================================
-
-KNOWN_SAFE_DOMAINS = {
-    "google.com",
-    "github.com",
-    "microsoft.com",
-    "apple.com",
-    "amazon.com",
-    "paypal.com",
-    "netflix.com",
-    "facebook.com",
-    "instagram.com",
-    "linkedin.com",
-    "outlook.com",
-}
-
-
-def normalize_url(url: str) -> str:
-    """
-    Normalize common URL formatting mistakes.
-
-    Handles:
-    - Markdown links
-    - Escaped protocols
-    - Missing protocols
-    """
-
-    url = str(url).strip()
-
-    # Convert Markdown:
-    # [https://google.com](https://google.com)
-    if url.startswith("[") and "](" in url and url.endswith(")"):
-        try:
-            url = url.split("](", 1)[1][:-1]
-        except Exception:
-            pass
-
-    # Remove escaped protocol
-    url = url.replace("https\\://", "https://")
-    url = url.replace("http\\://", "http://")
-
-    return url
-
-
-def get_registered_domain(url: str) -> str:
-    """
-    Extract the registered/root domain.
-
-    Examples:
-
-    www.google.com       -> google.com
-    accounts.google.com  -> google.com
-    github.com           -> github.com
-    attacker.com         -> attacker.com
-    """
-
-    normalized = normalize_url(url)
-
-    if not normalized.startswith(("http://", "https://")):
-        normalized = "http://" + normalized
-
-    extracted = tldextract.extract(normalized)
-
-    if not extracted.domain or not extracted.suffix:
-        return ""
-
-    return f"{extracted.domain}.{extracted.suffix}".lower()
-
-
-def is_known_safe_domain(url: str) -> bool:
-    """
-    Check whether the URL belongs to an explicitly trusted
-    legitimate domain.
-
-    This uses exact registered-domain matching.
-    """
-
-    registered_domain = get_registered_domain(url)
-
-    return registered_domain in KNOWN_SAFE_DOMAINS
-
-
 def load_model():
-    """Load the trained Random Forest model."""
-
+    """
+    Load the trained URL classification model.
+    """
     if not MODEL_PATH.exists():
         raise FileNotFoundError(
-            f"Model not found: {MODEL_PATH}"
+            f"URL model not found: {MODEL_PATH}"
         )
 
     return joblib.load(MODEL_PATH)
 
 
-def predict_url(url: str):
+def predict_url(url: str) -> dict:
     """
     Predict whether a URL is SAFE or PHISHING.
 
-    Pipeline:
+    Detection pipeline:
 
-    1. Normalize URL
-    2. Check known legitimate domain
-    3. Extract 30 ML features
-    4. Map features into training order
-    5. Run Random Forest
-    6. Add phishing explanation flags
+        URL
+        ↓
+        Trusted-domain check
+        ↓
+        Brand impersonation check
+        ↓
+        Feature extraction
+        ↓
+        Feature mapping
+        ↓
+        ML model
+        ↓
+        Prediction + confidence + flag
     """
 
-    normalized_url = normalize_url(url)
+    if not isinstance(url, str):
+        raise TypeError("URL must be a string.")
 
-    # ========================================================
-    # STEP 1 — Trusted legitimate domain check
-    # ========================================================
+    url = url.strip()
 
-    if is_known_safe_domain(normalized_url):
+    if not url:
+        raise ValueError("URL cannot be empty.")
 
+    # ---------------------------------------------------------
+    # Layer 1: Trusted legitimate-domain protection
+    # ---------------------------------------------------------
+
+    if is_trusted_domain(url):
         return {
-            "url": normalized_url,
             "prediction": "SAFE",
             "confidence": 1.0,
-            "phishing_probability": 0.0,
-            "safe_probability": 1.0,
+            "probabilities": {
+                "phishing": 0.0,
+                "safe": 1.0,
+            },
             "flag": "Known legitimate domain",
         }
 
-    # ========================================================
-    # STEP 2 — Load model
-    # ========================================================
+    # ---------------------------------------------------------
+    # Layer 2: Brand impersonation detection
+    # ---------------------------------------------------------
+
+    brand_flag = get_brand_impersonation_flag(url)
+
+    if brand_flag:
+        return {
+            "prediction": "PHISHING",
+            "confidence": 1.0,
+            "probabilities": {
+                "phishing": 1.0,
+                "safe": 0.0,
+            },
+            "flag": brand_flag,
+        }
+
+    # ---------------------------------------------------------
+    # Layer 3: Machine-learning URL classification
+    # ---------------------------------------------------------
 
     model = load_model()
 
-    # ========================================================
-    # STEP 3 — Extract features
-    # ========================================================
+    # Extract the same 30 features used during model training.
+    features = extract_url_features(url)
 
-    feature_dict = extract_features(normalized_url)
+    # Map features into the trained model's expected order.
+    mapped_features = map_features(features)
 
-    # ========================================================
-    # STEP 4 — Map features
-    # ========================================================
+    # map_features() returns a Python list.
+    # Convert it to NumPy and reshape it into one sample.
+    mapped_features = np.asarray(
+        mapped_features,
+        dtype=float,
+    ).reshape(1, -1)
 
-    features = map_features(feature_dict)
+    # Predict class.
+    prediction = model.predict(mapped_features)[0]
 
-    # ========================================================
-    # STEP 5 — Model prediction
-    # ========================================================
+    # Get class probabilities.
+    probabilities = model.predict_proba(mapped_features)[0]
 
-    prediction = model.predict([features])[0]
-
-    probabilities = model.predict_proba([features])[0]
-
-    # Model classes:
-    # 0 = PHISHING
-    # 1 = SAFE
+    # Model convention:
+    # class 0 = PHISHING
+    # class 1 = SAFE
 
     phishing_probability = float(probabilities[0])
     safe_probability = float(probabilities[1])
 
-    confidence = round(
-        max(
-            phishing_probability,
-            safe_probability
-        ),
-        4
-    )
+    # ---------------------------------------------------------
+    # Final classification
+    # ---------------------------------------------------------
 
-    # ========================================================
-    # STEP 6 — Build result
-    # ========================================================
+    if prediction == 0:
+        final_prediction = "PHISHING"
+        confidence = phishing_probability
 
-    result = {
-        "url": normalized_url,
-        "prediction": (
-            "SAFE"
-            if prediction == 1
-            else "PHISHING"
-        ),
-        "confidence": confidence,
-        "phishing_probability": round(
-            phishing_probability,
-            4
-        ),
-        "safe_probability": round(
-            safe_probability,
-            4
-        ),
+        flag = None
+
+        if phishing_probability >= 0.80:
+            flag = "High-confidence phishing detection"
+        elif phishing_probability >= 0.60:
+            flag = "Potentially suspicious URL"
+
+    else:
+        final_prediction = "SAFE"
+        confidence = safe_probability
+        flag = None
+
+    return {
+        "prediction": final_prediction,
+        "confidence": float(round(confidence, 4)),
+        "probabilities": {
+            "phishing": float(round(phishing_probability, 4)),
+            "safe": float(round(safe_probability, 4)),
+        },
+        "flag": flag,
     }
-
-    # ========================================================
-    # STEP 7 — Explanation flags
-    # ========================================================
-
-    if feature_dict.get(
-        "brand_impersonation",
-        0
-    ) == 1:
-
-        result["flag"] = (
-            "Brand impersonation / "
-            "phishing keywords detected"
-        )
-
-    elif feature_dict.get(
-        "has_suspicious_keywords",
-        0
-    ) == 1:
-
-        result["flag"] = (
-            "Suspicious phishing keywords detected"
-        )
-
-    return result

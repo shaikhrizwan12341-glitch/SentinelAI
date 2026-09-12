@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from backend.api.dependencies import get_current_user
 from backend.schemas.auth import (
     LoginRequest,
     RegisterRequest,
     TokenResponse,
     UserResponse,
 )
+from backend.api.dependencies import get_current_user
+from database.models.user import User
 from database.repositories.user_repository import UserRepository
 from database.services.user_service import UserService
 from database.session import get_db
@@ -114,3 +117,13 @@ def login_user(
             status_code=500,
             detail="Login failed.",
         ) from exc
+@router.get(
+    "/me",
+    response_model=UserResponse,
+)
+def get_me(
+    current_user: User = Depends(get_current_user),
+) -> UserResponse:
+    """Return the currently authenticated user."""
+
+    return UserResponse.model_validate(current_user)

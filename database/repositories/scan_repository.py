@@ -42,12 +42,18 @@ class ScanRepository:
     def get_by_id(
         self,
         scan_id: UUID,
+        user_id: UUID | None = None,
     ) -> Scan | None:
-        """Return a scan by UUID."""
+        """Return a scan by UUID, optionally restricted to a user."""
 
         statement = select(Scan).where(
             Scan.id == scan_id
         )
+
+        if user_id is not None:
+            statement = statement.where(
+                Scan.user_id == user_id
+            )
 
         return self.db.scalar(statement)
 
@@ -72,11 +78,19 @@ class ScanRepository:
     def get_recent(
         self,
         limit: int = 50,
+        user_id: UUID | None = None,
     ) -> list[Scan]:
-        """Return the most recent scans."""
+        """Return recent scans, optionally restricted to a user."""
+
+        statement = select(Scan)
+
+        if user_id is not None:
+            statement = statement.where(
+                Scan.user_id == user_id
+            )
 
         statement = (
-            select(Scan)
+            statement
             .order_by(Scan.created_at.desc())
             .limit(limit)
         )
@@ -89,12 +103,21 @@ class ScanRepository:
         self,
         scan_type: str,
         limit: int = 50,
+        user_id: UUID | None = None,
     ) -> list[Scan]:
-        """Return scans filtered by scan type."""
+        """Return scans filtered by type, optionally restricted to a user."""
+
+        statement = select(Scan).where(
+            Scan.scan_type == scan_type
+        )
+
+        if user_id is not None:
+            statement = statement.where(
+                Scan.user_id == user_id
+            )
 
         statement = (
-            select(Scan)
-            .where(Scan.scan_type == scan_type)
+            statement
             .order_by(Scan.created_at.desc())
             .limit(limit)
         )
@@ -106,12 +129,18 @@ class ScanRepository:
     def count_by_prediction(
         self,
         prediction: str,
+        user_id: UUID | None = None,
     ) -> int:
-        """Count scans matching a prediction."""
+        """Count scans matching a prediction, optionally for one user."""
 
         statement = select(Scan.id).where(
             Scan.prediction == prediction
         )
+
+        if user_id is not None:
+            statement = statement.where(
+                Scan.user_id == user_id
+            )
 
         return len(
             self.db.scalars(statement).all()
@@ -123,10 +152,16 @@ class ScanRepository:
         offset: int = 0,
         scan_type: str | None = None,
         prediction: str | None = None,
+        user_id: UUID | None = None,
     ) -> list[Scan]:
-        """Return scans using optional filters and pagination."""
+        """Return filtered and paginated scans, optionally restricted to a user."""
 
         statement = select(Scan)
+
+        if user_id is not None:
+            statement = statement.where(
+                Scan.user_id == user_id
+            )
 
         if scan_type is not None:
             statement = statement.where(
