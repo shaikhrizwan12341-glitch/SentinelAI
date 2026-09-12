@@ -65,7 +65,9 @@ class ScanRepository:
             .limit(limit)
         )
 
-        return list(self.db.scalars(statement).all())
+        return list(
+            self.db.scalars(statement).all()
+        )
 
     def get_recent(
         self,
@@ -79,7 +81,9 @@ class ScanRepository:
             .limit(limit)
         )
 
-        return list(self.db.scalars(statement).all())
+        return list(
+            self.db.scalars(statement).all()
+        )
 
     def get_by_scan_type(
         self,
@@ -95,7 +99,9 @@ class ScanRepository:
             .limit(limit)
         )
 
-        return list(self.db.scalars(statement).all())
+        return list(
+            self.db.scalars(statement).all()
+        )
 
     def count_by_prediction(
         self,
@@ -107,4 +113,38 @@ class ScanRepository:
             Scan.prediction == prediction
         )
 
-        return len(self.db.scalars(statement).all())
+        return len(
+            self.db.scalars(statement).all()
+        )
+
+    def get_filtered(
+        self,
+        limit: int = 50,
+        offset: int = 0,
+        scan_type: str | None = None,
+        prediction: str | None = None,
+    ) -> list[Scan]:
+        """Return scans using optional filters and pagination."""
+
+        statement = select(Scan)
+
+        if scan_type is not None:
+            statement = statement.where(
+                Scan.scan_type == scan_type
+            )
+
+        if prediction is not None:
+            statement = statement.where(
+                Scan.prediction == prediction
+            )
+
+        statement = (
+            statement
+            .order_by(Scan.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+
+        return list(
+            self.db.scalars(statement).all()
+        )

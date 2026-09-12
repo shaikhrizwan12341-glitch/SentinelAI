@@ -1,3 +1,5 @@
+import logging
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,6 +12,9 @@ from backend.schemas.scan import (
 from database.repositories.scan_repository import ScanRepository
 from database.services.scan_service import ScanService
 from database.session import get_db
+
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(
@@ -29,6 +34,19 @@ def get_scan_history(
         le=100,
         description="Maximum number of scans to return",
     ),
+    offset: int = Query(
+        default=0,
+        ge=0,
+        description="Number of scans to skip",
+    ),
+    scan_type: str | None = Query(
+        default=None,
+        description="Filter by scan type: url, email, or sms",
+    ),
+    prediction: str | None = Query(
+        default=None,
+        description="Filter by prediction: SAFE, PHISHING, or SUSPICIOUS",
+    ),
     db: Session = Depends(get_db),
 ) -> ScanHistoryResponse:
 
@@ -36,8 +54,11 @@ def get_scan_history(
         repository = ScanRepository(db)
         service = ScanService(repository)
 
-        scans = service.get_recent_scans(
-            limit=limit
+        scans = service.get_filtered_scans(
+            limit=limit,
+            offset=offset,
+            scan_type=scan_type,
+            prediction=prediction,
         )
 
         items = [
@@ -57,6 +78,11 @@ def get_scan_history(
         ) from exc
 
     except Exception as exc:
+        logger.exception(
+            "Failed to retrieve scan history: %s",
+            exc,
+        )
+
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve scan history.",
@@ -90,6 +116,11 @@ def get_scan_by_id(
         raise
 
     except Exception as exc:
+        logger.exception(
+            "Failed to retrieve scan: %s",
+            exc,
+        )
+
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve scan.",

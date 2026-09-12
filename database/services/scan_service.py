@@ -45,29 +45,19 @@ class ScanService:
         risk = risk.strip().capitalize()
 
         if scan_type not in self.VALID_SCAN_TYPES:
-            raise ValueError(
-                f"Invalid scan type: {scan_type}"
-            )
+            raise ValueError(f"Invalid scan type: {scan_type}")
 
         if not input_content.strip():
-            raise ValueError(
-                "Scan input content cannot be empty."
-            )
+            raise ValueError("Scan input content cannot be empty.")
 
         if prediction not in self.VALID_PREDICTIONS:
-            raise ValueError(
-                f"Invalid prediction: {prediction}"
-            )
+            raise ValueError(f"Invalid prediction: {prediction}")
 
         if not 0 <= confidence <= 1:
-            raise ValueError(
-                "Confidence must be between 0 and 1."
-            )
+            raise ValueError("Confidence must be between 0 and 1.")
 
         if risk not in self.VALID_RISKS:
-            raise ValueError(
-                f"Invalid risk level: {risk}"
-            )
+            raise ValueError(f"Invalid risk level: {risk}")
 
         return self.repository.create(
             user_id=user_id,
@@ -79,46 +69,53 @@ class ScanService:
             flag=flag,
         )
 
-    def get_scan(
-        self,
-        scan_id: UUID,
-    ) -> Scan | None:
+    def get_scan(self, scan_id: UUID) -> Scan | None:
         """Get a scan by UUID."""
-
         return self.repository.get_by_id(scan_id)
 
-    def get_user_scans(
-        self,
-        user_id: UUID,
-        limit: int = 50,
-    ) -> list[Scan]:
+    def get_user_scans(self, user_id: UUID, limit: int = 50) -> list[Scan]:
         """Get scans belonging to a user."""
-
         if limit < 1:
-            raise ValueError(
-                "Limit must be greater than zero."
-            )
-
+            raise ValueError("Limit must be greater than zero.")
         limit = min(limit, 100)
+        return self.repository.get_by_user(user_id=user_id, limit=limit)
 
-        return self.repository.get_by_user(
-            user_id=user_id,
-            limit=limit,
-        )
+    def get_recent_scans(self, limit: int = 50) -> list[Scan]:
+        """Get the most recent scans."""
+        if limit < 1:
+            raise ValueError("Limit must be greater than zero.")
+        limit = min(limit, 100)
+        return self.repository.get_recent(limit=limit)
 
-    def get_recent_scans(
+    def get_filtered_scans(
         self,
         limit: int = 50,
+        offset: int = 0,
+        scan_type: str | None = None,
+        prediction: str | None = None,
     ) -> list[Scan]:
-        """Get the most recent scans."""
+        """Get scans using optional filters and pagination."""
 
         if limit < 1:
-            raise ValueError(
-                "Limit must be greater than zero."
-            )
+            raise ValueError("Limit must be greater than zero.")
+        if limit > 100:
+            limit = 100
+        if offset < 0:
+            raise ValueError("Offset cannot be negative.")
 
-        limit = min(limit, 100)
+        if scan_type is not None:
+            scan_type = scan_type.strip().lower()
+            if scan_type not in self.VALID_SCAN_TYPES:
+                raise ValueError(f"Invalid scan type: {scan_type}")
 
-        return self.repository.get_recent(
+        if prediction is not None:
+            prediction = prediction.strip().upper()
+            if prediction not in self.VALID_PREDICTIONS:
+                raise ValueError(f"Invalid prediction: {prediction}")
+
+        return self.repository.get_filtered(
             limit=limit,
+            offset=offset,
+            scan_type=scan_type,
+            prediction=prediction,
         )
