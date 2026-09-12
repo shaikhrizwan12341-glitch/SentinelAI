@@ -6,7 +6,7 @@ from backend.api.routes.url import router as url_router
 from backend.api.routes.email import router as email_router
 from backend.api.routes.sms import router as sms_router
 from backend.api.routes.scans import router as scans_router
-
+from backend.api.routes.auth import router as auth_router
 
 app = FastAPI(
     title="SentinelAI API",
@@ -50,7 +50,7 @@ app.include_router(url_router)
 app.include_router(email_router)
 app.include_router(sms_router)
 app.include_router(scans_router)
-
+app.include_router(auth_router)
 # --------------------------------------------------
 # Root Endpoint
 # --------------------------------------------------
